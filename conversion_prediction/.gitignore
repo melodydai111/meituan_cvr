@@ -1,0 +1,16 @@
+data/raw/*
+!data/raw/README.md
+data/processed/*
+!data/processed/README.md
+artifacts/*
+!artifacts/README.md
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+.venv/
+*.egg-info/
+build/
+dist/
+.idea/
+.vscode/

@@ -1,0 +1,38 @@
+seed: 42
+
+paths:
+  # 相对路径以 conversion_prediction/ 为基准。
+  raw_data: data/raw/view_data.parquet
+  processed_dir: data/processed
+  artifacts_dir: artifacts
+
+data:
+  min_seq_len: 2
+  max_seq_len: 50
+  row_limit: null
+  split:
+    train: 0.70
+    validation: 0.15
+    test: 0.15
+  hash_buckets:
+    event: 4096
+    page: 2048
+    category: 1024
+    poi: 65536
+
+model:
+  hidden_dim: 64
+  num_layers: 2
+  num_heads: 4
+  ff_dim: 256
+  dropout: 0.10
+
+training:
+  batch_size: 256
+  epochs: 15
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  early_stopping_patience: 3
+  num_workers: 0
+  sample_limit: null
+  device: auto
