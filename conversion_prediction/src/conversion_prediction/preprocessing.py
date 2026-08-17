@@ -1,4 +1,7 @@
-"""把原始行为日志加工成无标签泄漏的 session 序列样本。"""
+"""
+把原始行为日志加工成无标签泄漏的 session 序列样本。
+输入是原始事件日志的 Parquet，输出是聚合好的 session 样本 + 元数据
+"""
 
 from __future__ import annotations
 

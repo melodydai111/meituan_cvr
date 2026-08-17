@@ -13,8 +13,8 @@ from .training import evaluate_checkpoint, train_experiment
 
 def configure_utf8_console() -> None:
     """统一 PowerShell 下的中文输出编码。"""
-    sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
-    sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+    sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace") # pyright: ignore[reportAttributeAccessIssue]
+    sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace") # pyright: ignore[reportAttributeAccessIssue]
 
 
 def make_parser() -> argparse.ArgumentParser:

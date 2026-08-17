@@ -24,15 +24,19 @@ model:
   hidden_dim: 64
   num_layers: 2
   num_heads: 4
-  ff_dim: 256
+  ff_dim: 256  # hidden_dim*4
   dropout: 0.10
 
 training:
-  batch_size: 256
+  # 小模型 + 短序列（最长 50），batch 256 会让 GPU 大量空转等数据；
+  # 提到 2048 让每个 batch 填满计算单元，单 epoch 批次数从约 2000 降到约 250。
+  batch_size: 2048
   epochs: 15
-  learning_rate: 0.001
+  # batch 扩大 8 倍，学习率按比例温和上调（AdamW 对 lr 不敏感，可再微调）。
+  learning_rate: 0.003
   weight_decay: 0.0001
   early_stopping_patience: 3
-  num_workers: 0
+  # 多进程加载数据，避免 GPU 空等下一批；Windows 本地跑如报错可改回 0。
+  num_workers: 4
   sample_limit: null
   device: auto

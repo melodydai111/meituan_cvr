@@ -104,7 +104,7 @@ def train_experiment(config: Dict, model_name: str, feature_set: str) -> Path:
     negatives = float(len(labels) - labels.sum())
     criterion = nn.BCEWithLogitsLoss(
         pos_weight=torch.tensor(negatives / positives, device=device)
-    )
+    ) # 带pos_weight的BCE损失
     optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=config["training"]["learning_rate"],
@@ -123,10 +123,10 @@ def train_experiment(config: Dict, model_name: str, feature_set: str) -> Path:
         losses = []
         for batch in train_loader:
             batch = move_batch(batch, device)
-            optimizer.zero_grad(set_to_none=True)
+            optimizer.zero_grad(set_to_none=True) # 梯度清0
             loss = criterion(model(batch)["logits"], batch["labels"])
             loss.backward()
-            nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
+            nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0) #梯度裁剪
             optimizer.step()
             losses.append(loss.item())
 

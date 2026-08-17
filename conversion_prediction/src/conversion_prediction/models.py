@@ -27,6 +27,7 @@ class BehaviorEmbedding(nn.Module):
         max_len = config["data"]["max_seq_len"]
         buckets = config["data"]["hash_buckets"]
 
+        # 基线特征，只包含event和event_type，以及transformer要求的位置编码position
         # 0 专门留给 padding；预处理生成的有效 ID 从 1 开始。
         self.event = nn.Embedding(buckets["event"] + 1, hidden, padding_idx=0)
         self.event_type = nn.Embedding(4, hidden, padding_idx=0)
@@ -48,8 +49,7 @@ class BehaviorEmbedding(nn.Module):
 
     def forward(self, batch: Dict[str, torch.Tensor]) -> torch.Tensor:
         # 基础表示始终包含具体事件、事件大类和发生位置。
-        output = self.event(batch["event_ids"]) + self.event_type(batch["event_type_ids"])
-        output = output + self.position(batch["positions"])
+        output = self.event(batch["event_ids"]) + self.event_type(batch["event_type_ids"]) + self.position(batch["positions"])
 
         # 根据 feature_set 逐步加入业务上下文、消费阶段和决策节奏。
         if self.use_context:
@@ -77,8 +77,8 @@ class AttentionPooling(nn.Module):
     def forward(self, sequence: torch.Tensor, mask: torch.Tensor):
         # padding 位置设为极小值，使 softmax 后的权重接近 0。
         scores = self.score(sequence).squeeze(-1).masked_fill(~mask, -1e9)
-        weights = torch.softmax(scores, dim=-1)
-        pooled = torch.sum(sequence * weights.unsqueeze(-1), dim=1)
+        weights = torch.softmax(scores, dim=-1) 
+        pooled = torch.sum(sequence * weights.unsqueeze(-1), dim=1) # [B, 64]
         return pooled, weights
 
 
@@ -87,7 +87,7 @@ class GRUClassifier(nn.Module):
 
     def __init__(self, config: Dict, feature_set: str):
         super().__init__()
-        hidden = config["model"]["hidden_dim"]
+        hidden = config["model"]["hidden_dim"] 
         layers = config["model"]["num_layers"]
         dropout = config["model"]["dropout"]
 
@@ -131,32 +131,32 @@ class TransformerClassifier(nn.Module):
         dropout = model_cfg["dropout"]
 
         self.embedding = BehaviorEmbedding(config, feature_set)
-        layer = nn.TransformerEncoderLayer(
+        encode_layer = nn.TransformerEncoderLayer(
             d_model=hidden,
             nhead=model_cfg["num_heads"],
             dim_feedforward=model_cfg["ff_dim"],
             dropout=dropout,
             activation="gelu",
             batch_first=True,
-            norm_first=True,
+            norm_first=True,  # Pre-LN
         )
-        self.encoder = nn.TransformerEncoder(layer, model_cfg["num_layers"])
+        self.encoder = nn.TransformerEncoder(encode_layer, model_cfg["num_layers"])
         self.pooling = AttentionPooling(hidden)
         self.head = nn.Sequential(
             nn.LayerNorm(hidden),
-            nn.Linear(hidden, hidden // 2),
+            nn.Linear(hidden, hidden // 2), 
             nn.GELU(),
             nn.Dropout(dropout),
             nn.Linear(hidden // 2, 1),
         )
 
     def forward(self, batch: Dict[str, torch.Tensor]):
-        embedded = self.embedding(batch)
+        embedded = self.embedding(batch) # 维度[B, 50, 64]
 
         # PyTorch 的 key padding mask 中 True 表示忽略，因此对有效位 mask 取反。
-        encoded = self.encoder(embedded, src_key_padding_mask=~batch["mask"])
-        pooled, pooling_weights = self.pooling(encoded, batch["mask"])
-        logits = self.head(pooled).squeeze(-1)
+        encoded = self.encoder(embedded, src_key_padding_mask=~batch["mask"]) # mask后的
+        pooled, pooling_weights = self.pooling(encoded, batch["mask"]) # [B, 64]
+        logits = self.head(pooled).squeeze(-1) # [B]
         return {"logits": logits, "pooling_weights": pooling_weights}
 
 
